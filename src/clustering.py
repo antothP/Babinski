@@ -42,9 +42,9 @@ def clustering(chunks):
             kmeans_clusters[label].append(chunks[i + max_cluster_id + 1])
         for i, cluster in enumerate(kmeans_clusters.values()):
             final_clusters[i + max_cluster_id + 1].extend(cluster)
-    # for id, chunk in final_clusters.items():
-    #     for c in chunk:
-    #         print(f"Cluster {id} :  {c['text'][:50] if c['text'] else 'N/A'}...")
+    for id, chunk in final_clusters.items():
+        for c in chunk:
+            print(f"Cluster {id} :  {c['text'][:50] if c['text'] else 'N/A'}...")
     return final_clusters
 
 #voir ce que cest un RAG
