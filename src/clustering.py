@@ -12,58 +12,40 @@ def clustering(chunks):
             vector = vector.tolist()
         vectors.append(vector)
 
-    vectors = np.array(vectors)
-    texts = [chunk["text"] for chunk in chunks]
-
+    np_vectors = np.array(vectors)
     dbscan = DBSCAN(
         eps=0.2,
         min_samples=2,
         metric="cosine"
     )
-    labels = dbscan.fit_predict(vectors)
+    labels = dbscan.fit_predict(np_vectors)
+    noisy_chunks = []
+    final_clusters = defaultdict(list)
 
-    clusters = defaultdict(list)
-    for idx, label in enumerate(labels):
-        clusters[label].append({
-            "text": texts[idx],
-            "vector": vectors[idx],
-            "cluster": label
-        })
-
-    noise_chunks = clusters.get(-1, [])
-    strong_clusters = {k: v for k, v in clusters.items() if k != -1}
-
-    final_clusters = {}
-    current_label = 0
-
-    for chunks in strong_clusters.values():
-        final_clusters[current_label] = chunks
-        current_label += 1
-
-    if len(noise_chunks) >= 5:
-        noise_vectors = np.array([c["vector"] for c in noise_chunks])
-
-        k = int(np.sqrt(len(noise_chunks)))
-        k = max(5, min(k, 30))
-
+    for i, label in enumerate(labels):
+        if label == -1:
+            noisy_chunks.append(vectors[i])
+        else:
+            final_clusters[label].append(chunks[i])
+    if (len(noisy_chunks) >= 5):
+        k = int(np.sqrt(len(noisy_chunks)))
         kmeans = KMeans(
             n_clusters=k,
             n_init=20,
             random_state=42
         )
-
-        kmeans_labels = kmeans.fit_predict(noise_vectors)
-
-        kmeans_groups = defaultdict(list)
-        for idx, label in enumerate(kmeans_labels):
-            kmeans_groups[label].append(noise_chunks[idx])
-
-        for chunks in kmeans_groups.values():
-            final_clusters[current_label] = chunks
-            current_label += 1
-
-    for cid, chunks in final_clusters.items():
-        print(f"\n=== CLUSTER {cid} ({len(chunks)} chunks) ===")
-        print(chunks[0]["vector"])
+        numpy_noisy = np.array(noisy_chunks)
+        kmeans_labels = kmeans.fit_predict(numpy_noisy)
+        print(kmeans_labels)
+        kmeans_clusters = defaultdict(list)
+        for i, label in enumerate(kmeans_labels):
+            kmeans_clusters[label].append(noisy_chunks[i])
+        max_cluster_id = max(final_clusters.keys()) if final_clusters else -1
+        for i, cluster in enumerate(kmeans_clusters.values()):
+            final_clusters[i + max_cluster_id + 1].extend(cluster)
+    for id, chunk in final_clusters.items():
+        print(f"Cluster {id} : {len(chunk)} chunks")
 
     return final_clusters
+
+#voir ce que cest un RAG
