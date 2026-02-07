@@ -7,7 +7,7 @@ from stockage import stocker_chunk, recherche_semantique, recuperer_tous_les_vec
 from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_score
-
+from clustering import clustering
 
 def lire_pdf(fichier_path):
     texte = ""
@@ -31,7 +31,7 @@ def main():
             stocker_chunk(chunk, {"source": str(pdf_path)}, vector)
     return tous_les_chunks
 
-
 # chunks = main()
 # print(chunks)
-recuperer_tous_les_vecteurs()
+new_chunk = recuperer_tous_les_vecteurs()
+labels = clustering(new_chunk)
