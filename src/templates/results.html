@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Résultats</title>
+</head>
+<body>
+    <h2>Résultats du pipeline</h2>
+
+    <p>Nombre de chunks : {{ nb_chunks }}</p>
+
+    <h3>Visualisation embeddings</h3>
+    <img src="{{ url_for('static', filename=graph_path) }}">
+</body>
+</html>
