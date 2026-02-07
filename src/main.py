@@ -4,6 +4,9 @@ from PyPDF2 import PdfReader
 from chunker import chunkeriser_texte
 from embeddings import get_embeddings
 from stockage import stocker_chunk, recherche_semantique, recuperer_tous_les_vecteurs, creer_schema
+from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
+from sklearn.metrics import silhouette_score
 
 
 def lire_pdf(fichier_path):
