@@ -1,4 +1,4 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def chunkeriser_texte(texte, chunk_size=500, overlap=50):
     texte = texte.strip()
