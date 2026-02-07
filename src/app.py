@@ -13,7 +13,6 @@ def run_pipeline():
     return render_template(
         "results.html",
         nb_chunks=len(chunks),
-        graph_path=graph_path
     )
 
 if __name__ == "__main__":
