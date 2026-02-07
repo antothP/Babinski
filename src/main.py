@@ -3,6 +3,7 @@ from pathlib import Path
 from PyPDF2 import PdfReader
 from chunker import chunkeriser_texte
 from embeddings import get_embeddings
+from weaviate import Client
 
 def lire_pdf(fichier_path):
     texte = ""
