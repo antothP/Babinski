@@ -1,6 +1,6 @@
 import ollama
 import numpy as np
 
-def get_embeddings(chunk, vector_store):
+def get_embeddings(chunk):
     response = ollama.embed(model="embeddinggemma", input=chunk)
-    vector_store.append(response['embeddings'])
+    return response['embeddings']
