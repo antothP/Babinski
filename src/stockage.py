@@ -86,7 +86,7 @@ def recuperer_tous_les_vecteurs():
         )
         
         chunks = []
-        print(f"✅ Récupéré {len(response.objects)} vecteurs")
+        # print(f"✅ Récupéré {len(response.objects)} vecteurs")
         
         for i, obj in enumerate(response.objects):
             chunk_data = {
@@ -96,19 +96,19 @@ def recuperer_tous_les_vecteurs():
             }
             chunks.append(chunk_data)
             
-            print(f"\n--- Chunk {i+1} ---")
-            print(f"Text: {chunk_data['text'][:100] if chunk_data['text'] else 'N/A'}...")
-            print(f"Metadata: {chunk_data['metadata']}")
+            # print(f"\n--- Chunk {i+1} ---")
+            # print(f"Text: {chunk_data['text'][:100] if chunk_data['text'] else 'N/A'}...")
+            # print(f"Metadata: {chunk_data['metadata']}")
 
             vector = chunk_data["vector"]
-            if isinstance(vector, list):
-                print(f"Vector (5 premiers): {vector[:5]}...")
-            elif isinstance(vector, dict):
-                for name, vec in vector.items():
-                    if isinstance(vec, list):
-                        print(f"Vector[{name}] (5 premiers): {vec[:5]}...")
-            else:
-                print("Vector: N/A")
+            # if isinstance(vector, list):
+            #     print(f"Vector (5 premiers): {vector[:5]}...")
+            # elif isinstance(vector, dict):
+            #     for name, vec in vector.items():
+            #         if isinstance(vec, list):
+            #             print(f"Vector[{name}] (5 premiers): {vec[:5]}...")
+            # else:
+            #     print("Vector: N/A")
         
         return chunks
         
