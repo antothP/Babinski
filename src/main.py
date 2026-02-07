@@ -36,4 +36,3 @@ def main():
 
 chunks = main()
 print(chunks)
-visualisation_2d(chunks)
