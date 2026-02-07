@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style/style.css') }}">
-    <title>Résultats - Babinsky</title>
+    <title>Visualisation vectorielle - Babinsky</title>
 </head>
 <body>
     <div class="results-container">
-        <h2>Résultats du pipeline</h2>
-
-        <p class="meta">Nombre de chunks : {{ nb_chunks }}</p>
-
-        <h3>Visualisation embeddings</h3>
-        <div class="graph-wrapper">
-            <img src="{{ url_for('static', filename=graph_path) }}" alt="Graphique des embeddings">
-        </div>
+        <h2>Visualisation vectorielle</h2>
+        {% if error %}
+            <p class="error-message">{{ error }}</p>
+        {% else %}
+            <div class="graph-wrapper">
+                <img src="{{ image_url }}" alt="Visualisation vectorielle PCA">
+            </div>
+        {% endif %}
 
         <a href="{{ url_for('index') }}" class="back-link">← Retour à l'accueil</a>
     </div>
