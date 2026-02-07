@@ -1,5 +1,4 @@
 import os
-import json
 from pathlib import Path
 from PyPDF2 import PdfReader
 from chunker import chunkeriser_texte
@@ -17,9 +16,6 @@ def lire_pdf(fichier_path):
     return texte
 
 def main():
-    if os.path.exists(CACHE_FILE):
-        with open(CACHE_FILE, "r") as f:
-            return json.load(f)
     dossier_data = "data"
     pdfs = list(Path(dossier_data).glob("*.pdf"))
     tous_les_chunks = []
