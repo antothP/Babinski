@@ -9,12 +9,8 @@
 <body>
     <div class="container">
         <div class="container-header">
-            <button class="chat-bot">
-                Chat Bot
-            </button>
-            <button class="visu-bulble">
-                Visualisation Bulle
-            </button>
+            <a href="{{ url_for('chat') }}" class="header-btn visu-vector">Chat Bot</a>
+            <a href="{{ url_for('bulle') }}" class="header-btn visu-vector">Visualisation Bulle</a>
             <a href="{{ url_for('visu_vector') }}" class="header-btn visu-vector">Visualisation Vectorielle</a>
         </div>
         <div class="container-lower">
