@@ -57,7 +57,6 @@ def generate_cluster_names(final_clusters, model_name="llama2"):
         cluster_names.append(cluster_name)
         print(f"Cluster {cluster_id} : {cluster_name}")
 
-# chunks = main()
 # print(chunks)
 new_chunk = recuperer_tous_les_vecteurs()
 cluster = clustering(new_chunk)
