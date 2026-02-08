@@ -44,7 +44,7 @@ def visu_vector():
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
-    """Route pour le chatbot RAG"""
+    """Route pour le chatbot RAG avec recherche par clusters"""
     if request.method == "POST":
         question = request.form.get("question", "").strip()
         
@@ -54,14 +54,18 @@ def chat():
         try:
             print(f"🔍 Question reçue: '{question}'")
             
-            # 1. Recherche sémantique des chunks les plus pertinents
-            top_chunks = recherche_semantique(question, top_k=3)
+            # 1. Recherche par clusters des chunks les plus pertinents
+            top_chunks = recherche_par_clusters(
+                question, 
+                top_clusters=2,      # Sélectionner les 2 meilleurs clusters
+                chunks_per_cluster=2  # Prendre 2 chunks par cluster
+            )
             
             if not top_chunks:
                 return render_template("chat.html", 
                                      error="Aucun chunk trouvé. Assurez-vous d'avoir lancé le pipeline /run d'abord.")
             
-            print(f"✅ Trouvé {len(top_chunks)} chunks pertinents")
+            print(f"✅ Trouvé {len(top_chunks)} chunks pertinents via clustering")
             
             # 2. Générer la réponse avec Groq
             reponse = generer_reponse_groq(question, top_chunks)
@@ -95,6 +99,104 @@ from sklearn.preprocessing import normalize
 from clustering import clustering
 from stockage import recuperer_tous_les_vecteurs
 from main import generate_cluster_names
+
+
+def recherche_par_clusters(question, top_clusters=2, chunks_per_cluster=2):
+    try:
+        all_chunks = recuperer_tous_les_vecteurs()
+        if not all_chunks:
+            return []
+        
+        clusters = clustering(all_chunks)
+        print(f"🔍 {len(clusters)} clusters trouvés")
+        
+        # 2. Calculer l'embedding de la question
+        question_vector = get_embeddings(question)
+        if hasattr(question_vector, 'tolist'):
+            question_vector = question_vector.tolist()
+        if isinstance(question_vector, list) and len(question_vector) > 0 and isinstance(question_vector[0], (list, tuple)):
+            question_vector = question_vector[0]
+        question_vector = np.array(question_vector)
+        
+        # 3. Calculer le centre de chaque cluster et la similarité avec la question
+        cluster_similarities = []
+        for cluster_id, chunks in clusters.items():
+            # Extraire les vecteurs du cluster
+            vectors = []
+            for chunk in chunks:
+                vector = chunk.get("vector")
+                if isinstance(vector, dict):
+                    vector = list(vector.values())[0]
+                if hasattr(vector, 'tolist'):
+                    vector = vector.tolist()
+                vectors.append(vector)
+            
+            # Calculer le centre du cluster
+            cluster_center = np.mean(vectors, axis=0)
+            
+            # Calculer la similarité cosinus entre la question et le centre du cluster
+            similarity = cosine_similarity(
+                question_vector.reshape(1, -1),
+                cluster_center.reshape(1, -1)
+            )[0][0]
+            
+            cluster_similarities.append({
+                'cluster_id': cluster_id,
+                'similarity': similarity,
+                'chunks': chunks
+            })
+        
+        # 4. Trier les clusters par similarité décroissante
+        cluster_similarities.sort(key=lambda x: x['similarity'], reverse=True)
+        top_relevant_clusters = cluster_similarities[:top_clusters]
+        
+        print(f"✅ Top {top_clusters} clusters sélectionnés")
+        for i, cluster_info in enumerate(top_relevant_clusters):
+            print(f"  Cluster {cluster_info['cluster_id']}: similarité {cluster_info['similarity']:.2%}")
+        
+        # 5. Dans chaque cluster pertinent, trouver les chunks les plus pertinents
+        selected_chunks = []
+        for cluster_info in top_relevant_clusters:
+            chunks = cluster_info['chunks']
+            
+            # Calculer la similarité de chaque chunk avec la question
+            chunk_similarities = []
+            for chunk in chunks:
+                vector = chunk.get("vector")
+                if isinstance(vector, dict):
+                    vector = list(vector.values())[0]
+                if hasattr(vector, 'tolist'):
+                    vector = vector.tolist()
+                chunk_vector = np.array(vector)
+                
+                similarity = cosine_similarity(
+                    question_vector.reshape(1, -1),
+                    chunk_vector.reshape(1, -1)
+                )[0][0]
+                
+                chunk_similarities.append({
+                    'text': chunk.get('text'),
+                    'metadata': chunk.get('metadata'),
+                    'certainty': similarity,
+                    'cluster_id': cluster_info['cluster_id']
+                })
+            
+            # Trier et prendre les meilleurs chunks de ce cluster
+            chunk_similarities.sort(key=lambda x: x['certainty'], reverse=True)
+            selected_chunks.extend(chunk_similarities[:chunks_per_cluster])
+        
+        # 6. Trier tous les chunks sélectionnés par similarité
+        selected_chunks.sort(key=lambda x: x['certainty'], reverse=True)
+        
+        print(f"✅ {len(selected_chunks)} chunks sélectionnés au total")
+        
+        return selected_chunks
+        
+    except Exception as e:
+        print(f"❌ Erreur dans recherche_par_clusters: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 @app.route("/bulle", methods=["GET", "POST"])
 def bulle():
