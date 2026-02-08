@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Babinsky</title>
+    <style>
+        * {
+            border =
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #020202ff 0%, #000000ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(62, 61, 61, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #c7c7c7ff;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #050609ff;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #ffffffff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .search-box button {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #444c18ff 0%, #3b3915ff 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .search-box button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .error {
+            background: rgba(0, 0, 0, 1);
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #c33;
+            margin-bottom: 20px;
+        }
+        
+        .results-section {
+            margin-top: 30px;
+        }
+        
+        .question-display {
+            background: #302f2fff;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #707070ff;
+            margin-bottom: 30px;
+        }
+        
+        .question-display h3 {
+            color: #ffffffff;
+            margin-bottom: 10px;
+        }
+        
+        .question-display p {
+            font-size: 18px;
+            color: #ffffffff;
+        }
+        
+        .chunks-section {
+            margin-bottom: 30px;
+        }
+        
+        .chunks-section h3 {
+            color: #ffffffff;
+            margin-bottom: 15px;
+        }
+        
+        .chunk {
+            background: #000000ff;
+            border: 2px solid #000000ff;
+            border: 3px solid #3e3e3eff;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        
+        .chunk:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+        
+        .chunk-similarity {
+            display: inline-block;
+            background: #34371fff;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .chunk-text {
+            color: #d4d1d1ff;
+            line-height: 1.6;
+        }
+        
+        .response-section {
+            background: linear-gradient(175deg, #343333ff 0%, #222020ff 90%);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(4, 3, 3, 0.1);
+        }
+        
+        .response-section h3 {
+            color: #ffffffff;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .response-text {
+            color: #ffffffff;
+            line-height: 1.8;
+            font-size: 16px;
+            white-space: pre-wrap;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            color: #8b9271ff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .back-link:hover {
+            color: #764ba2;
+            transform: translateX(-5px);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #ffffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chatbot Babinsky</h1>
+        
+        <form method="POST" class="search-box">
+            <input type="text" 
+                   name="question" 
+                   placeholder="Posez votre question..." 
+                   required
+                   value="{{ question if question else '' }}">
+            <button type="submit"> Envoyer</button>
+        </form>
+        
+        {% if error %}
+            <div class="error">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        {% if question %}
+            <div class="results-section">
+                <div class="question-display">
+                    <h3>Posez une question :</h3>
+                    <p>{{ question }}</p>
+                </div>
+
+                <div class="chunks-section">
+                    <h3> Similarité des paragraphes (Weaviate) :</h3>
+                    {% for chunk in top_chunks %}
+                        <div class="chunk">
+                            <span class="chunk-similarity">
+                                Similarité: {{ similarites[loop.index0] }}
+                            </span>
+                            <div class="chunk-text">
+                                {{ chunk.text[:300] }}{% if chunk.text|length > 300 %}...{% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="response-section">
+                    <h3></h3>
+                    <div class="response-text">{{ reponse }}</div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <a href="/" class="back-link">← Retour à l'accueil</a>
+    </div>
+</body>
+</html>

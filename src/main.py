@@ -86,9 +86,8 @@ def generate_cluster_names(final_clusters, model_name="gemma3"):
 # main()
 new_chunk = recuperer_tous_les_vecteurs()
 cluster = clustering(new_chunk)
-# print("test")
-cluster_name = generate_cluster_names(cluster)
-print(cluster_name)
-
+print("test")
+# cluster_name = generate_cluster_names(cluster)
+# print(cluster_name)
 
 
