@@ -32,35 +32,57 @@ def main():
             stocker_chunk(chunk, {"source": str(pdf_path)}, vector)
     return tous_les_chunks
 
-def generate_cluster_names(final_clusters, model_name="llama2"):
+
+def generate_cluster_names(final_clusters, model_name="gemma3"):
     cluster_names = []
 
-    for cluster_id, chunk in final_clusters.items():
-        concatenated_text = "".join([c["text"] for c in chunk if c["text"]])
-        print("--- Concatenated Text ---")
-        print(concatenated_text)
-        print("--- End of Concatenated Text ---")
-        prompt = f"""
-        Voici plusieurs phrases ou extraits liés entre eux :
+    for cluster_id, chunks in final_clusters.items():
+        texts = [c.get("text", "").strip() for c in chunks if c.get("text")]
+        concatenated_text = " ".join(texts)
+        if not concatenated_text:
+            cluster_names.append("Cluster sans contenu")
+            continue
 
+        prompt = f"""
+        Résume le thème commun de ces extraits en UN MOT clair.
+
+        Extraits :
         {concatenated_text}
 
-        Donne-moi un nom court et précis qui résume le thème commun de ces phrases avec le theme suivant :  IA de Confiance – Offre IA Orange Business
-        Réponse :
+        Contexte : IA de Confiance – Offre IA Orange Business
+
+        Donne uniquement le nom du thème, sans phrase.
         """
-        response = ollama.chat(
-            model=model_name,
-            messages=[{"role": "user", "content": prompt}]
-        )
 
-        cluster_name = response.get("content", "").strip()
+        try:
+            response = ollama.chat(
+                model=model_name,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt.strip()
+                    }
+                ]
+            )
+            cluster_name = (
+                response.get("message", {})
+                .get("content", "")
+                .strip()
+            )
+            if not cluster_name:
+                cluster_name = "Thème non identifié"
+
+        except Exception as e:
+            print(f"Erreur cluster {cluster_id} : {e}")
+            cluster_name = "Erreur génération"
+
         cluster_names.append(cluster_name)
-        print(f"Cluster {cluster_id} : {cluster_name}")
 
-# print(chunks)
+    return cluster_names
+
 new_chunk = recuperer_tous_les_vecteurs()
 cluster = clustering(new_chunk)
-print("test")
+# print("test")
 # cluster_name = generate_cluster_names(cluster)
 # print(cluster_name)
 
