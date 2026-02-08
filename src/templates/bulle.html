@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualisation des Clusters - Bulles Interactives</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        #controls h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.3em;
+        }
+
+        #stats {
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        #stats div {
+            margin: 5px 0;
+            padding: 8px;
+            background: #f0f0f0;
+            border-radius: 6px;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+        }
+
+        .control-group button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: none;
+            border-radius: 6px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .control-group button:hover {
+            background: #5568d3;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 2000;
+        }
+
+        #loading.hidden {
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 400px;
+            z-index: 1500;
+            font-size: 0.9em;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        #tooltip h3 {
+            margin-bottom: 8px;
+            color: #fff;
+            font-size: 1.1em;
+        }
+
+        #tooltip .sample {
+            margin: 5px 0;
+            padding-left: 10px;
+            border-left: 2px solid #667eea;
+            font-size: 0.85em;
+            color: #ddd;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .node circle {
+            stroke: #fff;
+            stroke-width: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .node:hover circle {
+            stroke-width: 4px;
+            filter: brightness(1.2);
+        }
+
+        .node text {
+            font-size: 12px;
+            font-weight: 600;
+            text-anchor: middle;
+            pointer-events: none;
+            fill: #333;
+            text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white;
+        }
+
+        .link {
+            stroke: rgba(255, 255, 255, 0.4);
+            stroke-width: 2px;
+            transition: all 0.3s;
+        }
+
+        .link:hover {
+            stroke: rgba(255, 255, 255, 0.8);
+            stroke-width: 3px;
+        }
+
+        .error-message {
+            background: #ff4444;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Chargement des clusters...</p>
+        </div>
+
+        <div id="controls">
+            <h2>🔮 Clusters IA</h2>
+            <div id="stats">
+                <div><strong>Clusters:</strong> <span id="cluster-count">-</span></div>
+                <div><strong>Connexions:</strong> <span id="link-count">-</span></div>
+            </div>
+            
+            <div class="control-group">
+                <label for="force-strength">Force de répulsion</label>
+                <input type="range" id="force-strength" min="50" max="500" value="200" step="10">
+            </div>
+
+            <div class="control-group">
+                <label for="link-distance">Distance des liens</label>
+                <input type="range" id="link-distance" min="50" max="300" value="150" step="10">
+            </div>
+
+            <div class="control-group">
+                <button onclick="resetSimulation()">🔄 Réinitialiser</button>
+                <button onclick="exportSVG()">💾 Exporter SVG</button>
+            </div>
+        </div>
+
+        <svg id="graph"></svg>
+        <div id="tooltip"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        let simulation;
+        let svg = d3.select("#graph");
+        let g = svg.append("g");
+        
+        // Zoom
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+        
+        svg.call(zoom);
+
+        // Échelle de couleurs
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // Échelle de taille des bulles
+        const sizeScale = d3.scaleSqrt()
+            .domain([1, 50])
+            .range([20, 80]);
+
+        // Chargement des données
+        async function loadData() {
+            try {
+                const response = await fetch('/api/clusters-data');
+                
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                document.getElementById('loading').classList.add('hidden');
+                createVisualization(data);
+                
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="error-message">
+                        <h3>❌ Erreur de chargement</h3>
+                        <p>${error.message}</p>
+                        <button onclick="location.reload()">Réessayer</button>
+                    </div>
+                `;
+            }
+        }
+
+        function createVisualization(data) {
+            const { nodes, links } = data;
+            
+            // Mettre à jour les stats
+            document.getElementById('cluster-count').textContent = nodes.length;
+            document.getElementById('link-count').textContent = links.length;
+
+            // Créer la simulation
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(150))
+                .force("charge", d3.forceManyBody()
+                    .strength(-200))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide()
+                    .radius(d => sizeScale(d.size) + 5));
+
+            // Créer les liens
+            const link = g.append("g")
+                .selectAll("line")
+                .data(links)
+                .join("line")
+                .attr("class", "link")
+                .style("stroke-width", d => d.strength * 3);
+
+            // Créer les nœuds
+            const node = g.append("g")
+                .selectAll("g")
+                .data(nodes)
+                .join("g")
+                .attr("class", "node")
+                .call(drag(simulation));
+
+            // Cercles
+            node.append("circle")
+                .attr("r", d => sizeScale(d.size))
+                .attr("fill", (d, i) => colorScale(i));
+
+            // Labels
+            node.append("text")
+                .attr("dy", d => sizeScale(d.size) + 15)
+                .text(d => d.name.length > 20 ? d.name.substring(0, 17) + '...' : d.name);
+
+            // Tooltip
+            const tooltip = d3.select("#tooltip");
+            
+            node.on("mouseenter", (event, d) => {
+                tooltip.style("opacity", 1)
+                    .html(`
+                        <h3>${d.name}</h3>
+                        <div><strong>Chunks:</strong> ${d.chunk_count}</div>
+                        ${d.samples.map(s => `<div class="sample">• ${s}</div>`).join('')}
+                    `)
+                    .style("left", (event.pageX + 15) + "px")
+                    .style("top", (event.pageY - 15) + "px");
+            })
+            .on("mousemove", (event) => {
+                tooltip
+                    .style("left", (event.pageX + 15) + "px")
+                    .style("top", (event.pageY - 15) + "px");
+            })
+            .on("mouseleave", () => {
+                tooltip.style("opacity", 0);
+            });
+
+            // Animation
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node.attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+
+            // Contrôles
+            document.getElementById('force-strength').addEventListener('input', (e) => {
+                simulation.force("charge").strength(-e.target.value);
+                simulation.alpha(0.3).restart();
+            });
+
+            document.getElementById('link-distance').addEventListener('input', (e) => {
+                simulation.force("link").distance(e.target.value);
+                simulation.alpha(0.3).restart();
+            });
+        }
+
+        function drag(simulation) {
+            function dragstarted(event) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                event.subject.fx = event.subject.x;
+                event.subject.fy = event.subject.y;
+            }
+            
+            function dragged(event) {
+                event.subject.fx = event.x;
+                event.subject.fy = event.y;
+            }
+            
+            function dragended(event) {
+                if (!event.active) simulation.alphaTarget(0);
+                event.subject.fx = null;
+                event.subject.fy = null;
+            }
+            
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+
+        function resetSimulation() {
+            if (simulation) {
+                simulation.alpha(1).restart();
+            }
+        }
+
+        function exportSVG() {
+            const svgElement = document.getElementById('graph');
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(svgElement);
+            const blob = new Blob([svgString], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'clusters-visualization.svg';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialisation
+        loadData();
+    </script>
+</body>
+</html>

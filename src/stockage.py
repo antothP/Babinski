@@ -15,7 +15,7 @@ def creer_schema():
     try:
         if client.collections.exists("Chunk"):
             client.collections.delete("Chunk")
-            print("🗑️  Ancienne collection supprimée")
+            print("Ancienne collection supprimée")
 
         client.collections.create(
             name="Chunk",
@@ -25,9 +25,9 @@ def creer_schema():
                 Property(name="metadata", data_type=DataType.TEXT),
             ],
         )
-        print("✅ Schéma créé avec succès")
+        print("Schéma créé avec succès")
     except Exception as e:
-        print(f"❌ Erreur création schéma: {e}")
+        print(f"Erreur création schéma: {e}")
 
 def stocker_chunk(chunk_text, metadata, embedding_vector):
     try:
@@ -46,24 +46,23 @@ def stocker_chunk(chunk_text, metadata, embedding_vector):
         print(f"✅ Chunk stocké: {chunk_text[:50]}... (UUID: {uuid})")
         return uuid
     except Exception as e:
-        print(f"❌ Erreur stockage: {e}")
+        print(f"Erreur stockage: {e}")
         return None
 
 def recherche_semantique(query, top_k=5):
     try:
         collection = client.collections.get("Chunk")
         query_vector = get_embeddings(query)
-        
         vector = query_vector.tolist() if hasattr(query_vector, 'tolist') else query_vector
-        
+        if len(vector) > 0 and isinstance(vector[0], (list, tuple)):
+            vector = vector[0]
         response = collection.query.near_vector(
             near_vector=vector,
             limit=top_k,
             return_metadata=MetadataQuery(certainty=True)
         )
-        
         resultats = []
-        print(f"✅ Trouvé {len(response.objects)} résultats")
+        print(f"Trouvé {len(response.objects)} résultats")
         for obj in response.objects:
             resultats.append({
                 "text": obj.properties.get("text"),
@@ -71,23 +70,19 @@ def recherche_semantique(query, top_k=5):
                 "certainty": obj.metadata.certainty if obj.metadata else None
             })
         return resultats
-        
     except Exception as e:
-        print(f"❌ Erreur recherche: {e}")
+        print(f"Erreur recherche: {e}")
         return []
 
 def recuperer_tous_les_vecteurs():
     try:
         collection = client.collections.get("Chunk")
-        
         response = collection.query.fetch_objects(
             limit=10000,
             include_vector=True
         )
-        
         chunks = []
-        # print(f"✅ Récupéré {len(response.objects)} vecteurs")
-        
+
         for i, obj in enumerate(response.objects):
             chunk_data = {
                 "text": obj.properties.get("text"),
@@ -113,7 +108,7 @@ def recuperer_tous_les_vecteurs():
         return chunks
         
     except Exception as e:
-        print(f"❌ Erreur récupération: {e}")
+        print(f"Erreur récupération: {e}")
         return []
 
 def verifier_connexion():
@@ -124,10 +119,10 @@ def verifier_connexion():
             print(f"Collections disponibles: {list(collections.keys())}")
             return True
         else:
-            print("❌ Weaviate n'est pas prêt")
+            print("Weaviate n'est pas prêt")
             return False
     except Exception as e:
-        print(f"❌ Erreur connexion: {e}")
+        print(f"Erreur connexion: {e}")
         return False
 
 def fermer_connexion():
